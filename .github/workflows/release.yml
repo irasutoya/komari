@@ -20,10 +20,20 @@ jobs:
       matrix:
         goos: [windows, linux]
         goarch: [amd64, arm64]
+        include:
+          - goos: windows
+            gcc: x86_64-w64-mingw32-gcc
+          - goos: linux
+            gcc: gcc
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install cross-compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-multilib gcc-mingw-w64
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -49,7 +59,8 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: 0
+          CGO_ENABLED: 1
+          CC: ${{ matrix.gcc }}
         run: |
           BINARY_NAME=komari-${{ matrix.goos }}-${{ matrix.goarch }}
           if [ "${{ matrix.goos }}" = "windows" ]; then
@@ -100,6 +111,3 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            VERSION=${{ github.event.release.tag_name }}
-            VERSION_HASH=${{ github.sha }}
